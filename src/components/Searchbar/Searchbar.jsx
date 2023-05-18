@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
  import { toast } from 'react-toastify';
  import {
@@ -9,30 +9,27 @@ import PropTypes from 'prop-types';
   Icon,
 } from './Searchbar.styled';
 
-class Searchbar extends Component {
-  state = {
-    searchImage: '',
+const Searchbar = ({onSubmit}) => {
+  const [searchImage, setSearchImage] = useState('');
+
+
+ const handleChange = e => {
+  setSearchImage( e.currentTarget.value.toLowerCase());
   };
 
-  handleChange = e => {
-    this.setState({ searchImage: e.currentTarget.value.toLowerCase() });
-  };
-
-  handleSubmit = e => {
+ const handleSubmit = e => {
     e.preventDefault();
-    if (this.state.searchImage.trim() === '') {
+    if (searchImage.trim() === '') {
       toast.error('Please enter valid search');
       return;
     }
-    this.props.onSubmit(this.state.searchImage);
-    this.setState({ searchImage: '' });
-    this.props.onClearImages();
+    onSubmit(searchImage);
+    setSearchImage('');
   };
 
-  render() {
     return (
       <SearchbarStyle>
-        <SearchForm onSubmit={this.handleSubmit}>
+        <SearchForm onSubmit={handleSubmit}>
           <SearchButton type="submit">
             <Icon/>
           </SearchButton>
@@ -42,18 +39,17 @@ class Searchbar extends Component {
             autoComplete="off"
             autoFocus
             placeholder="Search images and photos"
-            value={this.state.searchImage}
-            onChange={this.handleChange}
+            value={searchImage}
+            onChange={handleChange}
           />
         </SearchForm>
       </SearchbarStyle>
     );
   }
-}
+
 
 export default Searchbar;
 
 Searchbar.propTypes = {
   onSubmit: PropTypes.func.isRequired,
-  onClearImages: PropTypes.func.isRequired,
 };

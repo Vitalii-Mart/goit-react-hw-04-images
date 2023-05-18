@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,120 +9,83 @@ import Loader from 'components/Loader';
 import ButtonLoadMore from 'components/Button';
 import { StyledApp } from './App.styled';
 
-class App extends Component {
-  state = {
-    searchImage: '',
-    status: 'idle',
-    page: 1,
-    images: [],
-    totalImages: 0,
-  };
-  // componentDidUpdate(prevProps, prevState) {
-  //   const { searchImage, page } = this.state;
-  //   if (prevState.searchImage !== searchImage) {
-  //     this.setState({ images: [], page: 1 }, () => this.getImages());
-  //   } else if (prevState.page !== page) {
-  //     this.getImages();
-  //   }
-  // }
-  componentDidUpdate(prevProps, prevState) {
-    const { searchImage, page } = this.state;
-    if (prevState.searchImage !== searchImage || prevState.page !== page) {
-      this.getImages();
-    }
-  }
+const App = () => {
+  const [searchImage, setSearchImage] = useState('');
+  const [status, setStatus] = useState('idle');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [totalImages, setTotalImages] = useState(0);
 
-  getImages = async () => {
-    const { searchImage, page } = this.state;
+  useEffect(() => {
+    const getImages = async () => {
+      setStatus('pending');
 
-    this.setState({ status: 'pending' });
+      try {
+        const { images, totalImages } = await ImageApi(searchImage, page);
 
-    try {
-      const { images, totalImages } = await ImageApi(searchImage, page);
-
-      if (images.length === 0) {
-        toast.error(`Images ${searchImage} Not Found`);
-
-        this.setState({
-          status: 'rejected',
-        });
-      } else {
-        if (images.length !== 0 && page === 1) {
-          toast.success(`We found ${totalImages} pictures`);
-
-          this.setState({
-            totalImages,
-          });
+        if (images.length === 0) {
+          toast.error(`Images ${searchImage} Not Found`);
+          setStatus('rejected');
+        } else {
+          if (images.length !== 0 && page === 1) {
+            toast.success(`We found ${totalImages} pictures`);
+            setTotalImages(totalImages);
+          }
+          setImages(prevImage => [...prevImage, ...images]);
+          setStatus('resolved');
+          setTotalImages(totalImages);
         }
-        this.setState(prevState => ({
-          images: [...prevState.images, ...images],
-          status: 'resolved',
-          totalImages,
-        }));
+        if (totalImages > 0 && page !== 1 && totalImages <= images.length + (page - 1) * 12) {
+          toast.info(`The end of search results.`);
+          setTotalImages(totalImages);
+        }
+      } catch (error) {
+        toast.error(`Images ${searchImage} Not Found`);
+        setStatus('rejected');
       }
+    };
+    if (searchImage !== '' && page !== 0) {
+      getImages();
+    }
+  }, [searchImage, page]);
 
-      if (
-        totalImages > 0 &&
-        page !== 1 &&
-        totalImages <= this.state.images.length + 12
-      ) {
-        toast.info(`The end of search results.`);
-        this.setState({
-          totalImages,
-        });
-      }
-    } catch (error) {
-      toast.error(`Images ${searchImage} Not Found`);
-      this.setState({
-        status: 'rejected',
-      });
+  const formSubmit = e => {
+    if (e !== searchImage) {
+      setSearchImage(e);
+      setImages([]);
+      setPage(1);
     }
   };
-  clearImages = () => {
-    this.setState({ images: [], page: 1 });
+
+  const onLoadMore = () => {
+    setPage(prevPage => prevPage + 1);
   };
 
-  formSubmit = searchImage => {
-    this.setState({ searchImage });
-  };
-
-  onLoadMore = () => {
-    this.setState(({ page }) => ({
-      page: page + 1,
-    }));
-  };
-
-  render() {
-    const { images, status, page, totalImages } = this.state;
-    return (
-      <StyledApp>
-        <Searchbar
-          onSubmit={this.formSubmit}
-          onClearImages={this.clearImages}
-        />
-        {status === 'pending' && <Loader />}
-        {(status === 'resolved' || (status === 'pending' && page !== 1)) && (
-          <ImageGallery images={images} />
-        )}
-        {((totalImages !== images.length && status === 'resolved') ||
-          (status === 'pending' && page > 1)) && (
-          <ButtonLoadMore onClick={this.onLoadMore} />
-        )}
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
-        />
-      </StyledApp>
-    );
-  }
-}
+  return (
+    <StyledApp>
+      <Searchbar onSubmit={formSubmit} />
+      {status === 'pending' && <Loader />}
+      {(status === 'resolved' || (status === 'pending' && page !== 1)) && (
+        <ImageGallery images={images} />
+      )}
+      {((totalImages !== images.length && status === 'resolved') ||
+        (status === 'pending' && page > 1)) && (
+        <ButtonLoadMore onClick={onLoadMore} />
+      )}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
+    </StyledApp>
+  );
+};
 
 export default App;

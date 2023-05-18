@@ -1,45 +1,39 @@
-import React, { Component } from 'react';
+import React, { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { createPortal } from 'react-dom';
-import {Overlay,ModalStyled, } from './Modal.styled';
-
+import { Overlay, ModalStyled } from './Modal.styled';
 
 const modalRoot = document.querySelector('#modal-root');
 
-class Modal extends Component {
-  componentDidMount() {
-    window.addEventListener('keydown', this.handleKeyDown);
-  }
+const Modal = ({ large, tags, onClose }) => {
+  useEffect(() => {
+    const handleKeyDown = e => {
+      if (e.code === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
 
-  componentWillUnmount() {
-    window.removeEventListener('keydown', this.handleKeyDown);
-  }
-
-  handleKeyDown = e => {
-    if (e.code === 'Escape') {
-      this.props.onClose();
-    }
-  };
-
-  handleBackdropClick = event => {
+  const handleBackdropClick = event => {
     if (event.currentTarget === event.target) {
-      this.props.onClose();
+      onClose();
     }
   };
 
-  render() {
-    const { large, tags } = this.props;
+  return createPortal(
+    <Overlay onClick={handleBackdropClick}>
+      <div>
+        <ModalStyled src={large} alt={tags} />
+      </div>
+    </Overlay>,
+    modalRoot
+  );
+};
 
-    return createPortal(
-      <Overlay onClick={this.handleBackdropClick}>
-        <div>
-          <ModalStyled src={large} alt={tags} />
-        </div>
-      </Overlay>,
-      modalRoot
-    );
-  }
-}
 export default Modal;
 
 Modal.propTypes = {
@@ -47,4 +41,3 @@ Modal.propTypes = {
   tags: PropTypes.string,
   onClose: PropTypes.func,
 };
-
